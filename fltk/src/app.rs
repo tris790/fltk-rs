@@ -442,9 +442,7 @@ pub fn clipboard_contains(content: ClipboardContent) -> bool {
         Image => "image",
     };
     let txt = CString::new(txt).unwrap();
-    unsafe {
-        fl::Fl_clipboard_contains(txt.as_ptr()) != 0
-    }
+    unsafe { fl::Fl_clipboard_contains(txt.as_ptr()) != 0 }
 }
 
 /// Pastes content from the clipboard
@@ -1490,8 +1488,7 @@ pub enum ClipboardEvent {
 pub fn event_clipboard() -> Option<ClipboardEvent> {
     unsafe {
         let txt = fl::Fl_event_clipboard_type();
-        let txt = 
-            CStr::from_ptr(txt).to_string_lossy().to_string();
+        let txt = CStr::from_ptr(txt).to_string_lossy().to_string();
         if txt == "text/plain" {
             Some(ClipboardEvent::Text(event_text()))
         } else if txt == "image" {
@@ -1504,9 +1501,7 @@ pub fn event_clipboard() -> Option<ClipboardEvent> {
 
 /// Send an event directly to a window, with no dispatch in between
 pub fn handle_(ev: Event, win: impl WindowExt) -> bool {
-    unsafe {
-        fl::Fl_handle_(ev.bits(), win.as_widget_ptr() as _) != 0
-    }
+    unsafe { fl::Fl_handle_(ev.bits(), win.as_widget_ptr() as _) != 0 }
 }
 
 /// Send an event directly to the main window, with no dispatch in between
@@ -1530,10 +1525,25 @@ pub fn handle_main_<I: Into<i32> + Copy + PartialEq + PartialOrd>(
 /// Add an handler which handles events prior to them arriving to a window
 pub fn event_dispatch<W: WindowExt>(f: fn(Event, &W) -> bool) {
     unsafe {
-        let callback: Option<unsafe extern "C" fn(ev: raw::c_int, win: *mut raw::c_void) -> raw::c_int> =
-            Some(mem::transmute(move |ev, win| {
-                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| f(ev, win) as i32));
-            }));
+        let callback: Option<
+            unsafe extern "C" fn(ev: raw::c_int, win: *mut raw::c_void) -> raw::c_int,
+        > = Some(mem::transmute(move |ev, win| {
+            let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| f(ev, win) as i32));
+        }));
         fl::Fl_event_dispatch(callback);
+    }
+}
+
+pub fn add_system_handler<F: FnMut() + 'static>(cb: F) {
+    unsafe {
+        unsafe extern "C" fn shim(data: *mut raw::c_void) {
+            let a: *mut Box<dyn FnMut()> = data as *mut Box<dyn FnMut()>;
+            let f: &mut (dyn FnMut()) = &mut **a;
+            let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| f()));
+        }
+        let a: *mut Box<dyn FnMut()> = Box::into_raw(Box::new(Box::new(cb)));
+        let data: *mut raw::c_void = a as *mut raw::c_void;
+        let callback: fl::Fl_System_Handler = Some(shim);
+        fl::Fl_add_system_handler(callback, data);
     }
 }
