@@ -1539,7 +1539,11 @@ pub fn add_system_handler<F: FnMut() + 'static>(cb: F) {
         unsafe extern "C" fn shim(ev: raw::c_int, data: *mut raw::c_void) -> raw::c_int {
             let a: *mut Box<dyn FnMut()> = data as *mut Box<dyn FnMut()>;
             let f: &mut (dyn FnMut()) = &mut **a;
-            let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| f()));
+            let res = panic::catch_unwind(panic::AssertUnwindSafe(|| f()));
+            return match res {
+                Ok(_) => 1,
+                Err(_) => 0,
+            };
         }
         let a: *mut Box<dyn FnMut()> = Box::into_raw(Box::new(Box::new(cb)));
         let data: *mut raw::c_void = a as *mut raw::c_void;
