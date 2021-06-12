@@ -11,8 +11,9 @@ pub struct Fl_Widget_Tracker {
     _unused: [u8; 0],
 }
 pub type Fl_Awake_Handler = ::core::option::Option<unsafe extern "C" fn(data: *mut libc::c_void)>;
-pub type Fl_System_Handler =
-    ::core::option::Option<unsafe extern "C" fn(data: *mut libc::c_void) -> libc::c_int>;
+pub type Fl_System_Handler = ::core::option::Option<
+    unsafe extern "C" fn(ev: libc::c_int, data: *mut libc::c_void) -> libc::c_int,
+>;
 extern "C" {
     pub fn Fl_run() -> libc::c_int;
 }

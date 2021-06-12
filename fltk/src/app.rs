@@ -1536,7 +1536,7 @@ pub fn event_dispatch<W: WindowExt>(f: fn(Event, &W) -> bool) {
 
 pub fn add_system_handler<F: FnMut() + 'static>(cb: F) {
     unsafe {
-        unsafe extern "C" fn shim(data: *mut raw::c_void) {
+        unsafe extern "C" fn shim(ev: raw::c_int, data: *mut raw::c_void) {
             let a: *mut Box<dyn FnMut()> = data as *mut Box<dyn FnMut()>;
             let f: &mut (dyn FnMut()) = &mut **a;
             let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| f()));
